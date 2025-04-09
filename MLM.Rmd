@@ -1,0 +1,49 @@
+---
+title: "Multilevel Modelling for Health Researcher"
+author:
+  - "Qing Zhang"
+date: "2025-04-09"
+
+
+output: 
+  html_document:
+    theme: cerulean
+    toc: true
+    # toc_depth: 2
+    toc_float:
+      true
+    number_sections: true
+  # word_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Random Intercept models
+
+Random intercept models allow us to account for clustering in hierarchical data by introducing cluster-specific intercepts. In this practical, we will explore how to fit and interpret these models using data from the 
+*[Survey of Health, Ageing and Retirement in Europe (SHARE)](https://share-eric.eu/)*.
+
+ - We will begin by exploring the dataset and considering alternative approaches to handling clustering, including ignoring clustering, using fixed effects, and applying cluster-robust standard errors.
+
+ - We will then introduce random intercept models, covering their specification, interpretation, and advantages over alternative methods.
+
+ - Finally, we will assess model fit using a likelihood ratio test to determine whether the random intercept approach improves upon a single-level regression model that ignores clustering.
+
+
+```{r echo=FALSE, fig.cap="Figure.1 Clustered Data Structure", out.width = '80%'}
+knitr::include_graphics("./WechatIMG1560.jpg")
+```
+
+## Data
+We will use multilevel data from the **Survey of Health, Ageing and Retirement in Europe (SHARE)**, a longitudinal, cross-national study of individuals aged 50 and older across European countries. SHARE covers a wide range of topics, including health, socio-economic status, and social networks, enabling research on ageing, retirement, and health policy. The dataset has a complex structure with individuals nested within households and countries, making it well-suited for multilevel modelling.
+
+### Cognitive function
+
+This practical will focus on cognitive ability, measured using a modified version of the Rey Auditory Verbal Learning Test (RAVLT), a widely used measure of memory performance. Respondents are presented with a list of ten common words and asked to recall them immediately (immediate recall, `recall1`) and again after a short delay following an interference task (delayed recall, `recall2`). The total memory score is calculated as the sum of words correctly recalled across both trials, yielding a score ranging from 0 to 20. For details, refer to [this paper](https://www.sciencedirect.com/science/article/pii/S0167629617308299).
+
+This composite measure captures short-term memory and learning ability, making it a robust indicator of cognitive function. Memory performance is particularly relevant in ageing research, as it tends to decline with age and is less susceptible to floor and ceiling effects than alternative cognitive tests, such as verbal fluency. Prior studies have shown a consistent negative association between age and memory scores, with a steeper decline observed around retirement age.
+
+
