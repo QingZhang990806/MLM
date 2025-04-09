@@ -46,4 +46,12 @@ This practical will focus on cognitive ability, measured using a modified versio
 
 This composite measure captures short-term memory and learning ability, making it a robust indicator of cognitive function. Memory performance is particularly relevant in ageing research, as it tends to decline with age and is less susceptible to floor and ceiling effects than alternative cognitive tests, such as verbal fluency. Prior studies have shown a consistent negative association between age and memory scores, with a steeper decline observed around retirement age.
 
+## Exploring the data
+
+1. [Click here](https://github.com/QingZhang990806/MLM/blob/main/share.dta) to download the dataset for this practical (`share.dta`).
+
+2. Import the dataset into Stata or R.
+
+3. Explore the available variables (e.g., using `describe` and `sum` commands). How many respondents are there? How many countries and regions?
+
 
