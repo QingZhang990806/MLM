@@ -52,7 +52,7 @@ This composite measure captures short-term memory and learning ability, making i
 
 3.  Explore the available variables (e.g., using `describe` and `sum` commands). How many respondents are there? How many countries and regions?
 
-<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block">Solution</button>
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block">Solution1</button>
 <div id="code-block" class="collapse">
 
 ```{r}
@@ -89,3 +89,39 @@ share$age <- as.numeric(share$age)
 
 3.  `Plot` a histogram showing the distribution of cognitive function (again, across the sample as a whole).
 
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-2">Solution2</button>
+<div id="code-block-2" class="collapse">
+
+```{r}
+share |>
+  count(country)
+
+# How many regions are there?
+length(unique(share$region))
+
+# How many people per region?
+share |>
+  count(region) |>
+  ggplot() +
+  aes(x = n) +
+  geom_histogram(binwidth = 30) +
+  labs(y = "Number of regions",
+       x = "Number of participants per region")
+
+hist(share$cognition,
+     breaks = 20,
+     xlab = "Cognitive function")
+
+
+h <- hist(share$cognition, breaks = 20, plot = FALSE)
+my_breaks <- h$breaks
+share |>
+  ggplot() +
+  aes(x = cognition) +
+  geom_histogram(breaks = my_breaks, fill = "darkgrey", color = "black")
+```
+
+</div> 
+
+4. Repeat steps (b) and (c) to calculate the the mean and plot the distribution of cognition scores, but this time separately by country.
