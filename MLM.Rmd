@@ -14,7 +14,6 @@ output:
       true
     number_sections: true
   # word_document
-
 ---
 
 ```{r setup, include=FALSE}
@@ -23,21 +22,20 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Random Intercept models
 
-Random intercept models allow us to account for clustering in hierarchical data by introducing cluster-specific intercepts. In this practical, we will explore how to fit and interpret these models using data from the 
-*[Survey of Health, Ageing and Retirement in Europe (SHARE)](https://share-eric.eu/)*.
+Random intercept models allow us to account for clustering in hierarchical data by introducing cluster-specific intercepts. In this practical, we will explore how to fit and interpret these models using data from the [*Survey of Health, Ageing and Retirement in Europe (SHARE)*](https://share-eric.eu/).
 
- - We will begin by exploring the dataset and considering alternative approaches to handling clustering, including ignoring clustering, using fixed effects, and applying cluster-robust standard errors.
+-   We will begin by exploring the dataset and considering alternative approaches to handling clustering, including ignoring clustering, using fixed effects, and applying cluster-robust standard errors.
 
- - We will then introduce random intercept models, covering their specification, interpretation, and advantages over alternative methods.
+-   We will then introduce random intercept models, covering their specification, interpretation, and advantages over alternative methods.
 
- - Finally, we will assess model fit using a likelihood ratio test to determine whether the random intercept approach improves upon a single-level regression model that ignores clustering.
-
+-   Finally, we will assess model fit using a likelihood ratio test to determine whether the random intercept approach improves upon a single-level regression model that ignores clustering.
 
 ```{r echo=FALSE, fig.cap="Figure.1 Clustered Data Structure", out.width = '80%'}
 knitr::include_graphics("./WechatIMG1560.jpg")
 ```
 
 ## Data
+
 We will use multilevel data from the **Survey of Health, Ageing and Retirement in Europe (SHARE)**, a longitudinal, cross-national study of individuals aged 50 and older across European countries. SHARE covers a wide range of topics, including health, socio-economic status, and social networks, enabling research on ageing, retirement, and health policy. The dataset has a complex structure with individuals nested within households and countries, making it well-suited for multilevel modelling.
 
 ### Cognitive function
@@ -48,10 +46,46 @@ This composite measure captures short-term memory and learning ability, making i
 
 ## Exploring the data
 
-1. [Click here](https://github.com/QingZhang990806/MLM/blob/main/share.dta) to download the dataset for this practical (`share.dta`).
+1.  [Click here](https://github.com/QingZhang990806/MLM/blob/main/share.dta) to download the dataset for this practical (`share.dta`).
 
-2. Import the dataset into Stata or R.
+2.  Import the dataset into Stata or R.
 
-3. Explore the available variables (e.g., using `describe` and `sum` commands). How many respondents are there? How many countries and regions?
+3.  Explore the available variables (e.g., using `describe` and `sum` commands). How many respondents are there? How many countries and regions?
 
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block">Solution</button>
+<div id="code-block" class="collapse">
+
+```{r}
+library(tidyverse)
+library(labelled)
+library(here)
+library(haven)
+
+share <- read_dta("share.dta")
+glimpse(share)
+```
+
+Some of the variables have been imported by `haven` as a `labelled` type (e.g., see `map(share, class)`. Let’s convert them to ‘factors’ to show the value labels more easily:
+
+```{r}
+share <-
+  share |>
+  mutate(across(where(is.labelled), as_factor))
+```
+
+And let’s convert `age` to a numeric variable:
+
+```{r}
+share$age <- as.numeric(share$age)
+```
+
+</div> 
+
+## Describing hierarchical data
+
+1.  `Count` the number of participants per country and region.
+
+2.  `Calculate` the mean of cognitive function across the sample as a whole.
+
+3.  `Plot` a histogram showing the distribution of cognitive function (again, across the sample as a whole).
 
