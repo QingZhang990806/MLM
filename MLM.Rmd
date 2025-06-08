@@ -509,3 +509,22 @@ SJÖBERG, O. 2010. Social Insurance as a Collective Resource: Unemployment Benef
 SUBRAMANIAN, S. V., DELGADO, I., JADUE, L., VEGA, J. & KAWACHI, I. 2003. Income inequality and health: multilevel analysis of Chilean communities. J Epidemiol Community Health, 57, 844-8.
 
 YIP, W., SUBRAMANIAN, S. V., MITCHELL, A. D., LEE, D. T. S., WANG, J. & KAWACHI, I. 2007. Does social capital enhance health and well-being? Evidence from rural China. Social Scien
+
+
+# Exploring level-2 residuals
+
+Welcome to the second practical on multilevel modelling. In today’s session:
+
+1. We begin by looking at the level-2 residuals (i.e., the $\mu_j$ terms);
+2. We then introduce level-1 (i.e., individual) covariates into the model and plot the fixed slopes.
+3. In preparation for the next session on ‘random slopes’, we will explore how associations between education and cognitive function vary by country.
+
+## Visualising the level-2 residuals
+
+To understand how cognitive function varies across regions, we will now examine the level-2 residuals. Remember that in these models, ‘level-1’ and ‘level-2’ refer to individuals and regions, respectively. As described in the lecture, the residuals represent the average differences for individuals within a given cluster (i.e., region) from the overall mean level of cognitive function, shown opposite.
+
+We will first calculate the level-2 residuals for the empty (i.e., null) random intercept model. Then, we will calculate residuals for a model that includes level-1 covariates.
+
+**Level-2 residuals for the empty random intercept model**
+
+1. **Import** the `share.dta` dataset and create grand mean centred copies of `age` and `education.` Add a `_gm` suffix to the new variables.

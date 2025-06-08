@@ -2184,6 +2184,41 @@ communities. J Epidemiol Community Health, 57, 844-8.</p>
 well-being? Evidence from rural China. Social Scien</p>
 </div>
 </div>
+<div id="exploring-level-2-residuals" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Exploring level-2
+residuals</h1>
+<p>Welcome to the second practical on multilevel modelling. In today’s
+session:</p>
+<ol style="list-style-type: decimal">
+<li>We begin by looking at the level-2 residuals (i.e., the <span class="math inline">\(\mu_j\)</span> terms);</li>
+<li>We then introduce level-1 (i.e., individual) covariates into the
+model and plot the fixed slopes.</li>
+<li>In preparation for the next session on ‘random slopes’, we will
+explore how associations between education and cognitive function vary
+by country.</li>
+</ol>
+<div id="visualising-the-level-2-residuals" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Visualising the
+level-2 residuals</h2>
+<p>To understand how cognitive function varies across regions, we will
+now examine the level-2 residuals. Remember that in these models,
+‘level-1’ and ‘level-2’ refer to individuals and regions, respectively.
+As described in the lecture, the residuals represent the average
+differences for individuals within a given cluster (i.e., region) from
+the overall mean level of cognitive function, shown opposite.</p>
+<p>We will first calculate the level-2 residuals for the empty (i.e.,
+null) random intercept model. Then, we will calculate residuals for a
+model that includes level-1 covariates.</p>
+<p><strong>Level-2 residuals for the empty random intercept
+model</strong></p>
+<ol style="list-style-type: decimal">
+<li><strong>Import</strong> the <code>share.dta</code> dataset and
+create grand mean centred copies of <code>age</code> and
+<code>education.</code> Add a <code>_gm</code> suffix to the new
+variables.</li>
+</ol>
+</div>
+</div>
 
 
 
