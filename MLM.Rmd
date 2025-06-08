@@ -125,3 +125,47 @@ share |>
 </div> 
 
 4. Repeat steps (b) and (c) to calculate the the mean and plot the distribution of cognition scores, but this time separately by country.
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-3">Solution3</button>
+<div id="code-block-3" class="collapse">
+
+```{r}
+# We can calculate grouped summary statistics using group_by and summarise:
+share |>
+  group_by(country) |>
+  summarise(cognition = mean(cognition)) |>
+  arrange(cognition)
+# To create a stratified histogram, we can use facet_wrap:
+share |>
+  ggplot() +
+  aes(x = cognition) +
+  geom_histogram(bins = 10) +
+  facet_wrap(~ country, scales = "free_y")
+```
+
+</div> 
+
+
+
+5.  `Plot` the mean values of life satisfaction by country.
+
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-4">Solution4</button>
+<div id="code-block-4" class="collapse">
+
+```{r}
+# We can use reorder to rank the y-axis (i.e., countries) based on their mean cognition score:
+share |>
+  group_by(country) |>
+  summarise(cognition = mean(cognition, na.rm = TRUE)) |>
+  ggplot() +
+  aes(x = cognition,
+      y = reorder(country, cognition)) +
+  geom_point() +
+  theme(axis.title.y = element_blank()) +
+  labs(x = "Mean cognition score")
+
+```
+
+</div> 
+
