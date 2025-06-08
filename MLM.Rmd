@@ -20,7 +20,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Random Intercept models
+# Random Intercept models
 
 Random intercept models allow us to account for clustering in hierarchical data by introducing cluster-specific intercepts. In this practical, we will explore how to fit and interpret these models using data from the [*Survey of Health, Ageing and Retirement in Europe (SHARE)*](https://share-eric.eu/).
 
@@ -169,3 +169,343 @@ share |>
 
 </div> 
 
+### Grand-mean Centering
+
+Many books and courses recommend that continuous variables used in multilevel models should be grand-mean centred. This transformation subtracts the overall mean (i.e., the average value across all countries) from individual values. Another method of centring is group-mean centring, which subtracts the group-mean (i.e., the average within-country value). The choice of centring technique should be based on substantive research questions (see Enders & Tofighi, 2007; Hofmann & Gavin, 1998; Paccagnella, 2006).
+
+> It is our view that the choice of centering method is intimately linked to one’s substantive research questions, and both grand-mean centring and group-mean centring are appropriate in certain circumstances and are inappropriate in others. *(Enders & Tofighi, 2007, p. 127)*
+
+> There is no single best answer to the question of whether to use group-mean centering or grand-mean centering. The theory and specific questions to be answered should guide the researcher’s choice. *(Wu & Wooldridge, 2005, p. 212)*
+
+
+For this practical, we will use *grand-mean centring*. This produces a model equivalent to the raw (i.e., un-centred) model but has additional desirable properties:
+
+> In multilevel models, it is especially desirable that the intercepts refer to variable values represented in the data. If we grand-mean centre all variables as explained above, the regression constant will be the predicted mean for persons with the average values for the explanatory variables. The variances of the intercept and the slope can be interpreted as the expected variances for the average person.  
+
+
+> Two main advantages of centring the predictors are: (1) Obtaining estimates of effects that are easier to interpret, so that the statistical results can be related to the theoretical concerns that motivate the research; (2) Removing high correlations between the random intercept and slopes, and high correlations between first- and second-level variables and cross-level interactions.
+
+
+We will grand-mean centre the variables `age`, `education` (years of education) and `gdp` (Gross Domestic Product):
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-5">Solution5</button>
+<div id="code-block-5" class="collapse">
+
+We can centre a single variable:
+```{r}
+share$age_gm = share$age - mean(share$age, na.rm = TRUE)
+hist(share$age_gm,  breaks = 20,
+     xlab = "Age (grand-mean centred)")
+```
+
+
+Or multiple variables using `across`:
+```{r}
+subtract_mean <- function(x) x - mean(x, na.rm = TRUE)
+
+share <- share |>
+  mutate(across(c(age, education, gdp),
+    subtract_mean,
+    .names = "{.col}_gm"
+  ))
+```
+
+</div> 
+
+
+## Other ways of accounting for clustering
+
+Before considering the random intercepts model, we will first consider some other, arguably simpler, techniques for taking into account the clustering of individuals within countries.
+
+**Cluster-robust standard errors**
+
+We can adjust the standard errors from our model to account for clustering by using a cluster-robust estimator.
+
+ - In Stata, the `vce(cluster cluster_id)` option relaxes the independence assumption and requires only that the observations be independent across the clusters. (Note that the robust estimator will affect the standard errors only; the coefficients are unchanged). You can read more about this approach in section 20.22 of the Stata manual.
+
+ - In R, we can estimate cluster-robust standard errors using the sandwich package. https://sandwich.r-forge.r-project.org/index.html
+
+
+
+Below, we fit two regression models, with and without cluster-robust standard errors. We then tabulate the results to compare the intercept term ($\beta_o$) and its standard error.
+
+```{r}
+library(sandwich)
+library(lmtest)
+library(broom)
+
+m1 <- lm(cognition ~ 1, data = share)
+m2 <- lm(cognition ~ 1, data = share) |>
+  coeftest(vcov = vcovCL,
+           type = "HC1",
+           cluster = ~ region)
+
+map(list(m1, m2), tidy)
+```
+
+
+What can you say about the $\beta$ coefficient and standard error from the two models?
+
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-6">Solution6</button>
+<div id="code-block-6" class="collapse">
+
+The $\beta$ coefficients are identical, but the standard errors are larger in the second model that uses cluster-robust standard errors.
+
+</div> 
+
+
+**Representing clusters using dummy variables**
+
+This approach uses dummy variables to represent each level-2 unit (in this case, regions) and is sometimes referred to as the “fixed effects” approach. This can be convenient when we have few clusters (e.g., less than 8), but is extremely inefficient with many clusters (e.g., with hundreds of regions in SHARE). This approach also prevents us from exploring cluster-level variances or covariates.
+
+For this section only, we will exclude some of the clusters to avoid the computational burden of fitting a regression model with 354 dummy variables.
+
+```{r}
+share_subset <- share |>
+  filter(as.numeric(region) <= 30)
+```
+
+In R, we can create dummy variables by ensuring they are coded as factor (e.g., `as_factor`) or by wrapping the variable in `factor` when calling `lm`:
+```{r}
+m_fixed <- lm(cognition ~ region, data = share_subset)
+```
+We can extract the predictions and plot:
+```{r}
+library(marginaleffects)
+
+predictions(m_fixed, by = "region") |> 
+  ggplot() +
+  aes(y = estimate,
+      ymin = conf.low,
+      ymax = conf.high,
+      x = reorder(region, estimate)) +
+  geom_pointrange() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  labs(x = "Region")
+```
+
+
+## Random Intercept models
+We’ll now fit a random intercept model for cognition that will account for clustering with an region-level random intercept:
+
+$$
+y_ij = \beta_0 + \mu_j + \epsilon_ij
+$$
+
+$$
+\mu_j \sim N(0,\sigma^2_u)
+$$
+
+$$
+\epsilon_ij \sim N(\sigma^2_{\epsilon})
+$$
+
+
+
+You should now use the full dataset:
+For the rest of this practical, you should be working with the full SHARE dataset with 355 regions.
+
+**Specifying the random intercept model**
+There are several R packages for fitting multilevel models (see this Task Views page on CRAN for an overview). For this practical, we’ll use the `glmmTMB` package.
+
+The function to fit linear multilevel models is `glmmTMB`. The syntax is:
+```{r, eval=FALSE}
+library(glmmTMB)
+fit <- glmmTMB(y ~ x1 + x2 + x3 + (1 | cluster_id), data = d)
+```
+Where:
+
+ - `y` is the outcome and `x1`, `x2`, `x3` are predictors.
+ - `(1 | cluster_id)` specifies a cluster-level random intercept.
+
+For more information on specifying formula for mixed effect models in R, see this vignette(chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf).
+
+## Three models
+
+When modelling cognitive function across regions, we’re going to consider three models:
+
+| Method         | Description |
+|----------------|-------------|
+| **Complete pooling** | Combine all individuals into a single pool, ignoring clustering by region. |
+| **No pooling**       | Fit a separate model for each region. |
+| **Partial pooling**  | Fit a random intercept model that includes all individuals but accounts for clustering by region. Provides separate mean cognitive function estimates per region while borrowing information across regions. |
+
+
+This latter option (`Partial pooling’) represents one of the principle benefits of multilevel models. We will talk more about this in the next lecture and practical.
+
+**Complete pooling**
+
+We’ll begin by fitting a single model that combines all individuals into a single pool and ignores region clustering.
+
+```{r}
+library(glmmTMB)
+
+complete_pooling <- glmmTMB(cognition ~ 1, data = share)
+summary(complete_pooling)
+```
+Note that we could fit this model using `lm`, the R function for linear regression. However, for compatability with later comparisons, we’ll use `glmmTMB`.
+
+Question: How would you interpret this model?
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-7">Solution7</button>
+<div id="code-block-7" class="collapse">
+
+This model has a single intercept, $\beta_0 = 8.53$ , indicating a mean cognitive function score across all regions of 8.53 (out of 20)
+
+</div> 
+
+
+
+Question: Is this a useful model for cognitive function? Why?
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-8">Solution8</button>
+<div id="code-block-8" class="collapse">
+
+Not really. By assuming that cognitive function is constant across regions, this model gives poor estimates of levels of cognitive function within each region.
+
+</div> 
+
+**No pooling**
+
+Going to the other extreme, let’s fit a seperate model for each region:
+```{r}
+library(broom)
+
+results <- share |>
+  group_split(region) |>
+  map(\(subset) {
+    lm(cognition ~ 1, data = subset) |> tidy()
+  }) |>
+  list_rbind()
+
+results$term <- unique(share$region)
+
+head(results, 10)
+```
+
+Question: How would you interpret these models?
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-9">Solution9</button>
+<div id="code-block-9" class="collapse">
+
+Since we’re fitting a separate model for each region, we get a separate estimate of the intercept ($\beta_0$) and standard error for each country. The intercept varies across regions from 3.47 to 13.17.
+
+</div> 
+
+
+
+Question:  Is this a useful model for cognitive function? Why?
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-10">Solution10</button>
+<div id="code-block-10" class="collapse">
+
+Each separate model is an excellent model for the mean of cognitive function within *each region*, but they don’t generalise:
+
+ - We can’t apply the region-specific model to other regions, outside our sample.
+ - By only drawing on information for a region country, these models ignore potentially valuable information from other clusters. This is especially problematic when we have a small number of observations per cluster.
+
+</div> 
+
+
+**Partial Pooling**
+
+The random intercepts model offers a useful compromise between the ‘complete pooling’ and ‘no pooling’ models considered above:
+
+ - By allowing each cluster to have its own intercept term, this model is better able to capture cluster differences compared to the ‘complete pooling’ model.
+ - However, unlike ‘no pooling’ model, the random intercepts model is able to borrow information from other clusters when estimating cluster-specific intercepts (through ‘partial pooling’ or ‘shrinkage’). We’ll talk more about shrinkage in the next lecture.
+
+Using the syntax introduced above, we can fit an empty model for cognitive function with region-level random intercepts:
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-11">Solution11</button>
+<div id="code-block-11" class="collapse">
+
+```{r}
+library(glmmTMB)
+
+partial_pooling <- glmmTMB(cognition ~ 1 + (1 | region), data = share)
+summary(partial_pooling)
+```
+
+</div> 
+
+
+Answer the following questions:
+
+1. How many individuals are there? How many regions?
+2. What is the overall intercept, $\beta_0$?
+3. What is the region-level variance?
+4. What is the individual-level variance?
+
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-12">Solution12</button>
+<div id="code-block-12" class="collapse">
+
+1. There are 61,794 individuals in 355 regions.
+2. $\beta_0 = 8.59$
+3. $\sigma_\mu^2 = 1.72$
+4. $\sigma_\epsilon^2 = 11.91$
+</div> 
+
+**Was it worth it?**
+
+In this section, we’ll use a likelihood ratio test to compare random intercepts model to the single-level model.
+
+The random intercepts model is more complex than the equivalent single-level model that ignores clustering.
+
+(1) Single-level, ignoring clustering
+
+$$
+y_i = \beta_0 + \epsilon_i \\
+\epsilon_i \sim \mathcal{N}(0, \sigma^2_\epsilon)
+$$
+
+
+(2) Random intercepts
+
+$$
+y_{ij} = \beta_0 + u_j + \epsilon_{ij} \\
+u_j \sim \mathcal{N}(0, \sigma^2_u) \\
+\epsilon_{ij} \sim \mathcal{N}(0, \sigma^2_\epsilon)
+$$
+
+What has changed between these models? How many new parameters are there?
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-13">Solution13</button>
+<div id="code-block-13" class="collapse">
+
+The only difference between these models is the introduction of the $\mu_j$ parameter to capture cluster-specific deviations from the overall intercept ($\beta_0$). The line $\mu_j \sim N(0,\sigma_\mu^2)$ reflects our assumption that the $\mu_j$ terms will be normally distributed with a mean of 0 and standard deviation of $\sigma_\mu$ (a variance of $\sigma_\mu^2$).
+
+Therefore, there is one new parameter.
+</div> 
+
+
+We can test the improvement in model fit between (1) and (2) using a likelihood-ratio test. This compares difference in the Log likelihood between the two models against a $\chi^2$ distribution with $D.F.$ degrees of freedom, where $D.F.$ is the difference in the number of parameter between (1) and (2).
+
+Having fit the `partial_pooling` and `complete_pooling` models above, we can use anova to run the likelihood ratio test:
+```{r}
+anova(partial_pooling, complete_pooling)
+```
+
+Question: How would you interpret this result?
+
+<button class="btn btn-primary" data-toggle="collapse" data-target="#code-block-14">Solution14</button>
+<div id="code-block-14" class="collapse">
+
+This presents the difference in the -2 $\times$ Log-likelihood between the two models ($5966.2$) for one degrees of freedom (indicated by `LR chi2(1)`). The result is highly significant, with a p-value of less than 0.0000, providing good support for the random intercepts model being a better fit compared to the single-level model.
+
+</div> 
+
+
+## References
+
+MALMSTROM, M., SUNDQUIST, J. & JOHANSSON, S. E. 1999. Neighborhood environment and self-reported health status: a multilevel analysis. Am J Public Health, 89, 1181-6.
+
+SCHYNS, P. 2002. Wealth Of Nations, Individual Income and Life Satisfaction in 42 Countries: A Multilevel Approach. Social Indicators Research, 60, 5-40.
+
+SJÖBERG, O. 2010. Social Insurance as a Collective Resource: Unemployment Benefits, Job Insecurity and Subjective Well-being in a Comparative Perspective. Social Forces, 88, 1281-1304.
+
+SUBRAMANIAN, S. V., DELGADO, I., JADUE, L., VEGA, J. & KAWACHI, I. 2003. Income inequality and health: multilevel analysis of Chilean communities. J Epidemiol Community Health, 57, 844-8.
+
+YIP, W., SUBRAMANIAN, S. V., MITCHELL, A. D., LEE, D. T. S., WANG, J. & KAWACHI, I. 2007. Does social capital enhance health and well-being? Evidence from rural China. Social Scien
